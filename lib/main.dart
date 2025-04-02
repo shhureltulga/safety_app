@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_navigation.dart'; // 👈 нэмнэ
+import 'screens/home_navigation.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:get/get.dart'; // ⚠️ энэ заавал байх ёстой
+import 'screens/splash_screen.dart';
 
-void main() {
+void main() async {
+  await GetStorage.init();
   runApp(const SafetyApp());
 }
 
@@ -11,7 +15,7 @@ class SafetyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp( // ✅ GetMaterialApp гэж өөрчлөнө
       title: 'Safety App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -19,8 +23,7 @@ class SafetyApp extends StatelessWidget {
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: Colors.white,
       ),
-     home: LoginScreen()
-
+      home: SplashScreen(),
     );
   }
 }
