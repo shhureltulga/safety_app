@@ -8,12 +8,13 @@ class VideoPlayerScreen extends StatefulWidget {
   final int instructionId;
 
   const VideoPlayerScreen({
+    super.key,
     required this.videoUrl,
     required this.instructionId,
   });
 
   @override
-  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
+  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
@@ -38,12 +39,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _videoPlayerController = VideoPlayerController.network(widget.videoUrl);
     await _videoPlayerController.initialize();
 
-    // ⏮️ Resume from last position
     if (lastSeconds > 0) {
       _videoPlayerController.seekTo(Duration(seconds: lastSeconds));
     }
 
-    // 🎛️ Set up chewie
     _chewieController = ChewieController(
       videoPlayerController: _videoPlayerController,
       autoPlay: true,
@@ -52,53 +51,48 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       allowMuting: true,
     );
 
-    // 🧠 Watch progress tracking
-_videoPlayerController.addListener(() {
-  final position = _videoPlayerController.value.position;
-  final duration = _videoPlayerController.value.duration;
-  final remaining = duration - position;
+    _videoPlayerController.addListener(() {
+      final position = _videoPlayerController.value.position;
+      final duration = _videoPlayerController.value.duration;
+      final remaining = duration - position;
 
-  // 1️⃣ Block forward seeking
-  if (lastSeekPosition != null && !isSeekingBlocked) {
-    final diff = position - lastSeekPosition!;
-    if (diff.inSeconds > 3) {
-      final maxAllowed = Duration(seconds: lastSeconds);
-      if (position > maxAllowed) {
-        isSeekingBlocked = true;
-        _videoPlayerController.seekTo(lastSeekPosition!); // ⛔ Урагш гүйлгэхийг блоклоно
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("⛔ Урагш гүйлгэх боломжгүй")),
-          );
+      if (lastSeekPosition != null && !isSeekingBlocked) {
+        final diff = position - lastSeekPosition!;
+        if (diff.inSeconds > 3) {
+          final maxAllowed = Duration(seconds: lastSeconds);
+          if (position > maxAllowed) {
+            isSeekingBlocked = true;
+            _videoPlayerController.seekTo(lastSeekPosition!);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("⛔ Урагш гүйлгэх боломжгүй")),
+              );
+            }
+            isSeekingBlocked = false;
+            return;
+          }
         }
-        isSeekingBlocked = false;
-        return;
       }
-    }
-  }
 
-  lastSeekPosition = position;
+      lastSeekPosition = position;
 
-  // 2️⃣ Үзсэн секундийг хадгалах (5 секунд тутамд нэг удаа)
-  if (position.inSeconds % 5 == 0 && !_videoPlayerController.value.isBuffering) {
-    TrainingApi().saveProgress(
-      widget.instructionId,
-      position.inSeconds,
-      false, // 🎯 Бүрэн үзээгүй
-    );
-  }
+      if (position.inSeconds % 5 == 0 && !_videoPlayerController.value.isBuffering) {
+        TrainingApi().saveProgress(
+          widget.instructionId,
+          position.inSeconds,
+          false,
+        );
+      }
 
-  // 3️⃣ Хэрвээ бүрэн үзсэн бол watchedFully = true
-  if (!watchedFully && position >= duration) {
-    watchedFully = true;
-    TrainingApi().saveProgress(
-      widget.instructionId,
-      position.inSeconds,
-      true,
-    );
-  }
-});
-
+      if (!watchedFully && position >= duration) {
+        watchedFully = true;
+        TrainingApi().saveProgress(
+          widget.instructionId,
+          position.inSeconds,
+          true,
+        );
+      }
+    });
 
     setState(() {
       _loading = false;
@@ -115,10 +109,47 @@ _videoPlayerController.addListener(() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('🎬 Видео үзэх')),
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text('🎬 Видео үзэх'),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black87,
+      ),
       body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : Chewie(controller: _chewieController!),
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: _videoPlayerController.value.aspectRatio,
+                        child: Chewie(controller: _chewieController!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "🎓 Сургалтын видеог үзэж дуусгана уу.",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

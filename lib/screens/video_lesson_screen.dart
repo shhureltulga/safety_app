@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../api/instruction_api.dart';
 import '../models/instruction_model.dart';
 import 'video_player_screen.dart';
-import 'pdf_viewer_screen.dart'; // ← дараа үүсгэнэ
+import 'pdf_viewer_screen.dart';
 
 class VideoLessonScreen extends StatefulWidget {
   const VideoLessonScreen({super.key});
@@ -22,75 +22,114 @@ class _VideoLessonScreenState extends State<VideoLessonScreen> {
     loadInstructions();
   }
 
-Future<void> loadInstructions() async {
-  print("📡 Fetching instructions...");
-  final data = await _api.getForUser();
-  print("📥 Instructions received: ${data.length} items");
-
-  setState(() {
-    _instructions = data;
-    _loading = false;
-  });
-}
-
+  Future<void> loadInstructions() async {
+    final data = await _api.getForUser();
+    setState(() {
+      _instructions = data;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Сургалтын видео')),
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text('Сургалтын видео'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black87,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _instructions.length,
               itemBuilder: (context, index) {
                 final instruction = _instructions[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 6,
+                        offset: Offset(0, 4),
+                      )
+                    ],
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(instruction.title,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            const Icon(Icons.play_circle_outline, color: Colors.blueAccent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                instruction.title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 8),
                         Row(
-  mainAxisAlignment: MainAxisAlignment.end,
-  children: [
-    ElevatedButton.icon(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => VideoPlayerScreen(
-  videoUrl: instruction.videoUrl,
-  instructionId: instruction.id, // ← заавал өгнө
-),
-
-          ),
-        );
-      },
-      icon: const Icon(Icons.play_circle_fill),
-      label: const Text("Видео үзэх"),
-    ),
-    const SizedBox(width: 8),
-    if (instruction.pdfUrl != null)
-      ElevatedButton.icon(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PdfViewerScreen(pdfUrl: instruction.pdfUrl!),
-            ),
-          );
-        },
-        icon: const Icon(Icons.picture_as_pdf),
-        label: const Text("PDF үзэх"),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-      ),
-  ],
-),
-
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => VideoPlayerScreen(
+                                      videoUrl: instruction.videoUrl,
+                                      instructionId: instruction.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.play_arrow),
+                              label: const Text("Үзэх"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (instruction.pdfUrl != null)
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PdfViewerScreen(pdfUrl: instruction.pdfUrl!),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.picture_as_pdf),
+                                label: const Text("Унших"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
                       ],
                     ),
                   ),
