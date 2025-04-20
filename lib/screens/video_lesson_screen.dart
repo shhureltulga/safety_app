@@ -86,17 +86,22 @@ class _VideoLessonScreenState extends State<VideoLessonScreen> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => VideoPlayerScreen(
-                                      videoUrl: instruction.videoUrl,
-                                      instructionId: instruction.id,
-                                    ),
-                                  ),
-                                );
-                              },
+                              onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => VideoPlayerScreen(
+                                          videoUrl: instruction.videoUrl,
+                                          instructionId: instruction.id,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result == true) {
+                                      loadInstructions(); // ✅ буцаж ирэхэд жагсаалтыг дахин ачаална
+                                    }
+                                  },
+
                               icon: const Icon(Icons.play_arrow),
                               label: const Text("Үзэх"),
                               style: ElevatedButton.styleFrom(

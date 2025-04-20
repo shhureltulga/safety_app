@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 import '../api/training_api.dart';
+import '../widgets/acknowledgement_section.dart'; // showAcknowledgeModal
+import '../widgets/training_test_modal.dart'; // showTrainingTestModal
+
 
 class VideoPlayerScreen extends StatefulWidget {
   final String videoUrl;
   final int instructionId;
+
+
 
   const VideoPlayerScreen({
     super.key,
@@ -19,6 +24,10 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _videoPlayerController;
+
+
+bool modalShown = false;
+
   ChewieController? _chewieController;
   bool _loading = true;
   bool watchedFully = false;
@@ -40,7 +49,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     await _videoPlayerController.initialize();
 
     if (lastSeconds > 0) {
-      _videoPlayerController.seekTo(Duration(seconds: lastSeconds));
+     await _videoPlayerController.seekTo(Duration(seconds: lastSeconds));
     }
 
     _chewieController = ChewieController(
@@ -51,48 +60,74 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       allowMuting: true,
     );
 
-    _videoPlayerController.addListener(() {
-      final position = _videoPlayerController.value.position;
-      final duration = _videoPlayerController.value.duration;
-      final remaining = duration - position;
+  _videoPlayerController.addListener(() {
+  final position = _videoPlayerController.value.position;
+  final duration = _videoPlayerController.value.duration;
 
-      if (lastSeekPosition != null && !isSeekingBlocked) {
-        final diff = position - lastSeekPosition!;
-        if (diff.inSeconds > 3) {
-          final maxAllowed = Duration(seconds: lastSeconds);
-          if (position > maxAllowed) {
-            isSeekingBlocked = true;
-            _videoPlayerController.seekTo(lastSeekPosition!);
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("⛔ Урагш гүйлгэх боломжгүй")),
-              );
-            }
-            isSeekingBlocked = false;
-            return;
-          }
+  if (duration == null || position == null) return;
+
+  final remaining = duration - position;
+
+  // ⛔ Гүйлгэхээс хамгаална
+  if (lastSeekPosition != null && !isSeekingBlocked) {
+    final diff = position - lastSeekPosition!;
+    if (diff.inSeconds > 3) {
+      final maxAllowed = Duration(seconds: position.inSeconds - 2);
+      if (position > maxAllowed) {
+        isSeekingBlocked = true;
+        _videoPlayerController.seekTo(lastSeekPosition!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("⛔ Урагш гүйлгэх боломжгүй")),
+          );
         }
+        isSeekingBlocked = false;
+        return;
       }
+    }
+  }
 
-      lastSeekPosition = position;
+  // 🕓 Сүүлийн байрлалыг хадгална
+  lastSeekPosition = position;
 
-      if (position.inSeconds % 5 == 0 && !_videoPlayerController.value.isBuffering) {
-        TrainingApi().saveProgress(
-          widget.instructionId,
-          position.inSeconds,
-          false,
-        );
-      }
+  // 📡 5 секунд тутам progress хадгалах
+  if (position.inSeconds % 5 == 0 &&
+      !_videoPlayerController.value.isBuffering) {
+    TrainingApi().saveProgress(
+      widget.instructionId,
+      position.inSeconds,
+      false,
+    );
+  }
 
-      if (!watchedFully && position >= duration) {
-        watchedFully = true;
-        TrainingApi().saveProgress(
-          widget.instructionId,
-          position.inSeconds,
-          true,
-        );
-      }
-    });
+  // ✅ Видео бүрэн үзсэн үед хадгалж, modal харуулна
+if (!watchedFully && position >= duration) {
+  watchedFully = true;
+
+  TrainingApi().saveProgress(
+    widget.instructionId,
+    position.inSeconds,
+    true,
+  );
+
+  if (!modalShown) {
+    modalShown = true;
+    // 🔁 ЭНЭ ХЭСГИЙГ СОЛЬ:
+    // showAcknowledgeModal(context, widget.instructionId);
+   // showTrainingTestModal(context, widget.instructionId); // ✅
+    showTrainingTestModal(
+  context,
+  widget.instructionId,
+  onSuccess: () {
+    Navigator.pop(context, true);
+  },
+);
+
+  }
+}
+
+});
+
 
     setState(() {
       _loading = false;
