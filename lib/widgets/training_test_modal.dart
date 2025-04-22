@@ -5,6 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart';
 import '../models/training_question_model.dart';
 import '../api/training_question_api.dart';
+import '../config/api_config.dart'; 
 
 class TrainingTestModal extends StatefulWidget {
   final int instructionId;
@@ -54,7 +55,7 @@ class _TrainingTestModalState extends State<TrainingTestModal> {
 
   Future<void> acknowledge(BuildContext context) async {
     final token = GetStorage().read('token');
-    final url = 'http://43.201.146.103:3000/instruction-acknowledge';
+    final url = '${ApiConfig.baseUrl}/instruction-acknowledge';
 
     setState(() => _submitting = true);
 

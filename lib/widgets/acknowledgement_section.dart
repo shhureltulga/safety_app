@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart'; 
 
 // 🧩 Баталгаажуулалтын UI
 class AcknowledgementSection extends StatefulWidget {
@@ -33,7 +34,7 @@ class _AcknowledgementSectionState extends State<AcknowledgementSection> {
 
     setState(() => loading = true);
 
-    final url = Uri.parse('http://43.201.146.103:3000/instruction-acknowledge');
+    final url = Uri.parse('${ApiConfig.baseUrl}/instruction-acknowledge');
     final res = await http.post(
       url,
       headers: {
