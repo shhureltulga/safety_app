@@ -126,28 +126,38 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         itemCount: _reports.length > 10 ? 10 : _reports.length,
         itemBuilder: (context, index) {
           final item = _reports[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              leading: item['imageUrl'] != null
-  ? ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.network(
-        item['imageUrl'].toString().startsWith('http')
-          ? item['imageUrl']
-          : '${ApiConfig.baseUrl}${item['imageUrl']}',
-        width: 50,
-        height: 50,
-        fit: BoxFit.cover,
-      ),
-    )
-  : Icon(Icons.image_not_supported),
+          final imageUrl = item['imageUrl'].toString();
+final fullUrl = imageUrl.startsWith('http')
+    ? imageUrl
+    : '${ApiConfig.baseUrl}$imageUrl';
 
-              title: Text(item['description'] ?? 'No description'),
-              subtitle: Text('🕒 ${item['createdAt']?.toString().substring(0, 16) ?? ''}'),
+print('🖼️ Зураг дуудаж байна: $fullUrl');
+
+return Card(
+  margin: const EdgeInsets.only(bottom: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  child: ListTile(
+    leading: imageUrl.isNotEmpty
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              fullUrl,
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                print('❌ Image алдаа: $error');
+                return Icon(Icons.broken_image);
+              },
             ),
-          );
+          )
+        : Icon(Icons.image_not_supported),
+    title: Text(item['description'] ?? 'No description'),
+    subtitle: Text('🕒 ${item['createdAt']?.toString().substring(0, 16) ?? ''}'),
+  ),
+);
+
+         
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
