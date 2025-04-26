@@ -5,6 +5,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart';
 import '../../config/api_config.dart';
 import '../../api/violation_api.dart';
+import '../../services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ReportFormScreen extends StatefulWidget {
   @override
@@ -16,6 +18,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final storage = GetStorage();
   File? _imageFile;
+  double? _lat;
+  double? _lng;
 
   @override
   void initState() {
@@ -41,12 +45,31 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       setState(() {
         _imageFile = File(picked.path);
       });
+
+      final position = await LocationService.getCurrentLocation();
+      if (position != null) {
+        setState(() {
+          _lat = position.latitude;
+          _lng = position.longitude;
+        });
+      } else {
+        print('📍 Байршил олдсонгүй');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Байршил авахад алдаа гарлаа')),
+        );
+      }
     }
   }
 
   Future<void> _submitReport() async {
     final token = storage.read('token');
-    if (_imageFile == null || token == null) return;
+
+    if (_imageFile == null || _lat == null || _lng == null || token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Зураг болон байршлын мэдээлэл шаардлагатай')),
+      );
+      return;
+    }
 
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
@@ -55,6 +78,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       ),
       'description': _descriptionController.text,
       'source': 'MOBILE',
+      'lat': _lat,
+      'lng': _lng,
     });
 
     try {
@@ -72,12 +97,17 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         setState(() {
           _reports.insert(0, res.data);
           _imageFile = null;
+          _lat = null;
+          _lng = null;
           _descriptionController.clear();
         });
         Navigator.pop(context);
       }
     } catch (e) {
       print('Error uploading: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Илгээхэд алдаа гарлаа')),
+      );
     }
   }
 
@@ -95,13 +125,20 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
             children: [
               Container(height: 4, width: 40, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
               SizedBox(height: 10),
-              _imageFile != null ? Image.file(_imageFile!, height: 150) : Text('📷 Зураг аваагүй байна'),
+              _imageFile != null
+                  ? Image.file(_imageFile!, height: 150)
+                  : Text('📷 Зураг аваагүй байна'),
               TextButton.icon(onPressed: _pickImage, icon: Icon(Icons.camera_alt), label: Text('Зураг авах')),
               TextField(
                 controller: _descriptionController,
                 decoration: InputDecoration(labelText: 'Тайлбар'),
                 maxLines: 2,
               ),
+              if (_lat != null && _lng != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('📍 Байршил: $_lat, $_lng', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                ),
               SizedBox(height: 10),
               Row(
                 children: [
@@ -127,37 +164,30 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         itemBuilder: (context, index) {
           final item = _reports[index];
           final imageUrl = item['imageUrl'].toString();
-final fullUrl = imageUrl.startsWith('http')
-    ? imageUrl
-    : '${ApiConfig.baseUrl}$imageUrl';
+          final fullUrl = imageUrl.startsWith('http') ? imageUrl : '${ApiConfig.baseUrl}$imageUrl';
 
-print('🖼️ Зураг дуудаж байна: $fullUrl');
-
-return Card(
-  margin: const EdgeInsets.only(bottom: 12),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  child: ListTile(
-    leading: imageUrl.isNotEmpty
-        ? ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              fullUrl,
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                print('❌ Image алдаа: $error');
-                return Icon(Icons.broken_image);
-              },
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              leading: imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        fullUrl,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.broken_image);
+                        },
+                      ),
+                    )
+                  : Icon(Icons.image_not_supported),
+              title: Text(item['description'] ?? 'No description'),
+              subtitle: Text('🕒 ${item['createdAt']?.toString().substring(0, 16) ?? ''}'),
             ),
-          )
-        : Icon(Icons.image_not_supported),
-    title: Text(item['description'] ?? 'No description'),
-    subtitle: Text('🕒 ${item['createdAt']?.toString().substring(0, 16) ?? ''}'),
-  ),
-);
-
-         
+          );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
