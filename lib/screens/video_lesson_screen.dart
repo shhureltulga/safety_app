@@ -119,7 +119,12 @@ class _VideoLessonScreenState extends State<VideoLessonScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => PdfViewerScreen(pdfUrl: instruction.pdfUrl!),
+                                      builder: (_) => PdfViewerScreen(
+  pdfUrl: instruction.pdfUrl!,
+  instructionId: instruction.id,
+  totalPages: instruction.totalPages ?? 1,
+),
+
                                     ),
                                   );
                                 },
